@@ -1,10 +1,11 @@
 {
   "name": "react-native-masonry",
-  "version": "0.3.0",
+  "version": "0.5.0-alpha.5",
   "description": "A react-native component for a masonry layout",
   "main": "./components/Masonry.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "postinstall": "opencollective postinstall"
   },
   "author": "Brandon Him",
   "files": [
@@ -31,6 +32,7 @@
   "dependencies": {
     "data.task": "^3.1.2",
     "lodash": "^4.17.20",
+    "opencollective": "^1.0.3",
     "prop-types": "^15.7.2",
     "react-native-injectable-component": "^0.1.3"
   },
@@ -44,7 +46,7 @@
     "jest": "^20.0.4",
     "jest-react-native": "^18.0.0",
     "react": "16.11.0",
-    "react-native": "^0.46.4",
+    "react-native": "0.62.2",
     "react-test-renderer": "^16.0.0-alpha.12"
   },
   "contributors": [
@@ -59,5 +61,10 @@
       "<rootDir>/example/",
       "<rootDir>/__tests__/mocks/"
     ]
+  },
+  "collective": {
+    "type": "opencollective",
+    "url": "https://opencollective.com/react-native-masonry",
+    "logo": "https://opencollective.com/opencollective/logo.txt"
   }
 }

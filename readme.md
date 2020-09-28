@@ -3,6 +3,14 @@
 
 ![v0.1.0 Demo](http://g.recordit.co/SLAvTzf9HY.gif)
 
+## Notes to branch
+
+Updated to use FlatList as ListView is now deprecated. Lifecycle updated for compatibility with modern versions of React.
+I've only allocated a couple of hours to this, and not given this the love and affection that this awesome component deserves.
+But hopefully this can serve as he basis of keeping this moving forwards.
+
+eddyoc
+
 ## Usage
 1. Install the repository
     ```bash
