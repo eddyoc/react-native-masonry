@@ -4,15 +4,14 @@ import Injector from 'react-native-injectable-component';
 
 export default function Brick (props) {
   // Avoid margins for first element
-  const { gutter } = props;
+  const { gutter, renderHeader, renderFooter, data, onPress, brickKey } = props;
   console.log('Brick : props = '+ JSON.stringify(props));
-  // const image = (props.onPress) ? _getTouchableUnit(props, props.gutter) : _getImageTag(props, props.gutter);
-  const image = _getImageTag(props, gutter);
-  const footer = (props.renderFooter) ? props.renderFooter(props.data) : null;
-  const header = (props.renderHeader) ? props.renderHeader(props.data) : null;
+  const image = (onPress) ? _getTouchableUnit(props, gutter) : _getImageTag(props, gutter);
+  const footer = (renderFooter) ? renderFooter(data) : null;
+  const header = (renderHeader) ? renderHeader(data) : null;
 
   return (
-    <View key={props.brickKey}>
+    <View key={brickKey}>
       {header}
       {image}
       {footer}
@@ -22,19 +21,18 @@ export default function Brick (props) {
 
 // _getImageTag :: Image, Gutter -> ImageTag
 export function _getImageTag (props, gutter = 0) {
-  const { customImageProps, customImageComponent } = props;
+  const { customImageProps, imageContainerStyle, customImageComponent, uri, width, height } = props;
   const imageProps = {
-    key: props.uri,
+    key: uri,
     source: {
-      uri: props.uri
+      uri,
     },
     resizeMethod: 'auto',
     style: {
-      ...props.imageContainerStyle,
-
-      width: props.width,
-      height: props.height,
+      width,
+      height,
       marginTop: gutter,
+      ...imageContainerStyle,
     }
   };
 
@@ -46,10 +44,10 @@ export function _getImageTag (props, gutter = 0) {
     <Injector
       defaultComponent={Image}
       defaultProps={imageProps}
-      // injectant={customImageComponent}
-      // injectantProps={props.customImageProps}
+      injectant={customImageComponent}
+      injectantProps={customImageProps}
     />
-  )
+  );
 }
 
 // _getTouchableUnit :: Image, Number -> TouchableTag

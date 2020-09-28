@@ -11,12 +11,23 @@ import styles from '../styles/main';
 // assignObjectColumn :: Number -> [Objects] -> [Objects]
 export const assignObjectColumn = (nColumns, index, targetObject) => ({...targetObject, ...{ column: index % nColumns }});
 
-// assignObjectIndex :: (Number, Object) -> Object
 // Assigns an `index` property` from bricks={data}` for later sorting.
+// assignObjectIndex :: (Number, Object) -> Object
 export const assignObjectIndex = (index, targetObject) => ({...targetObject, ...{ index }});
+
+// findMinIndex :: [Numbers] -> Number
+export const findMinIndex = (srcArray) => srcArray.reduce((shortest, cValue, cIndex, cArray) => (cValue < cArray[shortest]) ? cIndex : shortest, 0);
 
 // containMatchingUris :: ([brick], [brick]) -> Bool
 const containMatchingUris = (r1, r2) => _.isEqual(r1.map(brick => brick.uri), r2.map(brick => brick.uri));
+
+// Fills an array with 0's based on number count
+// generateColumnsHeight :: Number -> Array [...0]
+export const generateColumnHeights = count => Array(count).fill(0);
+
+const INVALID_COLUMN_WIDTH = -1;
+const PRIORITY_BALANCE = "balance";
+const PRIORITY_ORDER = "order";
 
 export default class Masonry extends Component {
   static propTypes = {
@@ -25,7 +36,12 @@ export default class Masonry extends Component {
     sorted: PropTypes.bool,
     imageContainerStyle: PropTypes.object,
     customImageComponent: PropTypes.func,
-    customImageProps: PropTypes.object
+    customImageProps: PropTypes.object,
+    spacing: PropTypes.number,
+    priority: PropTypes.string,
+    refreshControl: PropTypes.element,
+    onEndReached: PropTypes.func,
+    onEndReachedThreshold: PropTypes.number
   };
 
   static defaultProps = {
@@ -33,24 +49,44 @@ export default class Masonry extends Component {
     columns: 2,
     sorted: false,
     imageContainerStyle: {},
+    spacing: 1,
+    priority: 'order',
+    // no-op function
+    onEndReached: () => ({}),
+    onEndReachedThreshold: 25
   };
 
   constructor(props) {
     super(props);
+
+    // This creates an array of [1..n] with values of 0, each index represent a column within the masonry
+    const columnHeights = generateColumnHeights(props.columns);
     this.state = {
       dataSource: [],
       dimensions: {},
       initialOrientation: true,
       _sortedData: [],
-      _resolvedData: []
+      _resolvedData: [],
+      _columnHeights: columnHeights,
+      _uniqueCount: props.bricks.length
     };
     // Assuming that rotation is binary (vertical|landscape)
-    Dimensions.addEventListener('change', (window) => this.setState(state => ({ initialOrientation: !state.initialOrientation })))
+    Dimensions.addEventListener('change', () => {
+      this.setState(state => ({ initialOrientation: !state.initialOrientation }))
+    })
   }
 
-  componentDidMount() {
-    this.resolveBricks(this.props);
-  }
+	componentDidMount() {
+		// If balance priority isn't enabled, resolve bricks on didMount
+		if (!this.isBalancingEnabled()) {
+			this.resolveBricks(this.props);
+		}
+	}
+
+	isBalancingEnabled() {
+		const { priority } = this.props;
+		return priority == PRIORITY_BALANCE;
+	}
 
   componentWillReceiveProps(nextProps) {
     const sameData = containMatchingUris(this.props.bricks, nextProps.bricks);

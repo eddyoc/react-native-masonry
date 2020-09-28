@@ -21,6 +21,11 @@ export default class Column extends Component {
     customImageProps: PropTypes.object
   };
 
+  static defaultProps = {
+    imageContainerStyle: {},
+    spacing: 1
+  };
+
   componentDidMount() {
     const { data, parentDimensions, columns } = this.props;
     const images = Column._resizeImages(data, parentDimensions, columns);
