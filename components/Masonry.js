@@ -72,7 +72,7 @@ export default class Masonry extends Component {
       _uniqueCount: bricks.length,
 
       columns: undefined,
-      priority: undefined,
+      priority: 'order',
       bricks: undefined,
     };
     // Assuming that rotation is binary (vertical|landscape)
@@ -150,7 +150,7 @@ export default class Masonry extends Component {
 
   static getDerivedStateFromProps(nextProps, prevState) {
     const { columns, priority, bricks } = nextProps;
-    const { columns: prevColumns, priority: prevPriority, bricks: prevBricks } = prevState;
+    const { columns: prevColumns, priority: prevPriority, bricks: prevBricks = [] } = prevState;
     const differentColumns = columns !== prevColumns;
     const differentPriority = priority !== prevPriority;
     const brickDiff = _.differenceBy(bricks, prevBricks, 'uri');
