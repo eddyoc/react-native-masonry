@@ -1,8 +1,8 @@
 import { View, FlatList, Image, Text, Dimensions } from 'react-native';
-import React, { Component } from 'react';
+import React, { Component, Fragment } from 'react';
 import PropTypes from 'prop-types';
+import _ from 'lodash';
 import Task from 'data.task';
-import isEqual from 'lodash.isequal';
 
 import { resolveImage } from './model';
 import Column from './Column';
@@ -16,7 +16,7 @@ export const assignObjectColumn = (nColumns, index, targetObject) => ({...target
 export const assignObjectIndex = (index, targetObject) => ({...targetObject, ...{ index }});
 
 // containMatchingUris :: ([brick], [brick]) -> Bool
-const containMatchingUris = (r1, r2) => isEqual(r1.map(brick => brick.uri), r2.map(brick => brick.uri));
+const containMatchingUris = (r1, r2) => _.isEqual(r1.map(brick => brick.uri), r2.map(brick => brick.uri));
 
 export default class Masonry extends Component {
   static propTypes = {
@@ -65,9 +65,9 @@ export default class Masonry extends Component {
           .map((brick, index) => assignObjectIndex(index, brick))
           .reduce((sortDataAcc, resolvedBrick) => _insertIntoColumn(resolvedBrick, sortDataAcc, this.props.sorted), []);
 
-      	this.setState({
-      	  dataSource: resortedData
-      	});
+        this.setState({
+          dataSource: resortedData
+        });
       }
     } else {
       this.resolveBricks(nextProps);
@@ -80,23 +80,24 @@ export default class Masonry extends Component {
       .map((brick, index) => assignObjectIndex(index, brick))
       .map(brick => resolveImage(brick))
       .map(resolveTask => resolveTask.fork(
-      	(err) => console.warn('Image failed to load'),
-      	(resolvedBrick) => {
-      	  this.setState(state => {
-      	    const sortedData = _insertIntoColumn(resolvedBrick, state._sortedData, this.props.sorted);
-  
-      	    return {
-      	      dataSource: sortedData,
-      	      _sortedData: sortedData,
-      	      _resolvedData: [...state._resolvedData, resolvedBrick]
-      	    }
-      	  });;
+        (err) => console.warn('Image failed to load'),
+        (resolvedBrick) => {
+          this.setState(state => {
+            const sortedData = _insertIntoColumn(resolvedBrick, state._sortedData, this.props.sorted);
+
+            return {
+              dataSource: sortedData,
+              _sortedData: sortedData,
+              _resolvedData: [...state._resolvedData, resolvedBrick]
+            }
+          });
         }));
   }
 
   _setParentDimensions(event) {
+    const { width, height } = _.get(event, 'nativeEvent.layout');
     // Currently height isn't being utilized, but will pass through for future features
-    const {width, height} = event.nativeEvent.layout;
+    // const { width, height } = layout;
     this.setState({
       dimensions: {
         width,
@@ -106,23 +107,31 @@ export default class Masonry extends Component {
   }
 
   render() {
+    const { dimensions, dataSource } = this.state;
+    const {
+      columns,
+      imageContainerStyle,
+      customImageComponent,
+      customImageProps,
+    } = this.props;
     return (
-  	<View onLayout={(event) => this._setParentDimensions(event)}>
- 	    <FlatList
-         contentContainerStyle={styles.masonry__container}
-         data={this.state.dataSource}
-         keyExtractor={(item, index) => (`RN-MASONRY-COLUMN-${index}`)}
-         renderItem={({item, index}) => (
-           <Column
-             data={item}
-             columns={this.props.columns}
-             parentDimensions={this.state.dimensions}
-             imageContainerStyle={this.props.imageContainerStyle}
-             customImageComponent={this.props.customImageComponent}
-             customImageProps={this.props.customImageProps}
-            /> )}
-       />
-  	</View>
+      <View onLayout={(event) => this._setParentDimensions(event)}>
+        <FlatList
+          contentContainerStyle={styles.masonry__container}
+          data={dataSource}
+          keyExtractor={(item, index) => (`RN-MASONRY-COLUMN-${index}`)}
+          renderItem={({item, index}) => (
+            <Column
+              data={item}
+              columns={columns}
+              parentDimensions={dimensions}
+              imageContainerStyle={imageContainerStyle}
+              customImageComponent={customImageComponent}
+              customImageProps={customImageProps}
+            />
+          )}
+        />
+      </View>
     )
   }
 };
@@ -136,7 +145,7 @@ export function _insertIntoColumn (resolvedBrick, dataSet, sorted) {
 
   if (column) {
     // Append to existing "row"/"column"
-    const bricks = [...column, resolvedBrick]
+    let bricks = [...column, resolvedBrick]
     if (sorted) {
       // Sort bricks according to the index of their original array position
       bricks = bricks.sort((a, b) => { return (a.index < b.index) ? -1 : 1; });
@@ -148,4 +157,4 @@ export function _insertIntoColumn (resolvedBrick, dataSet, sorted) {
   }
 
   return dataCopy;
-};
+}
