@@ -52,7 +52,7 @@ export default class Masonry extends Component {
     spacing: 1,
     priority: 'order',
     // no-op function
-    onEndReached: () => ({}),
+    onEndReached: () => {},
     onEndReachedThreshold: 25
   };
 
@@ -61,6 +61,7 @@ export default class Masonry extends Component {
 
     // This creates an array of [1..n] with values of 0, each index represent a column within the masonry
     const columnHeights = generateColumnHeights(props.columns);
+    const { bricks } = props;
     this.state = {
       dataSource: [],
       dimensions: {},
@@ -68,7 +69,11 @@ export default class Masonry extends Component {
       _sortedData: [],
       _resolvedData: [],
       _columnHeights: columnHeights,
-      _uniqueCount: props.bricks.length
+      _uniqueCount: bricks.length,
+
+      columns: undefined,
+      priority: undefined,
+      bricks: undefined,
     };
     // Assuming that rotation is binary (vertical|landscape)
     Dimensions.addEventListener('change', () => {
@@ -85,47 +90,175 @@ export default class Masonry extends Component {
 
 	isBalancingEnabled() {
 		const { priority } = this.props;
-		return priority == PRIORITY_BALANCE;
+		return priority === PRIORITY_BALANCE;
 	}
 
-  componentWillReceiveProps(nextProps) {
-    const sameData = containMatchingUris(this.props.bricks, nextProps.bricks);
-    if (sameData) {
-      const differentColumns = this.props.columns !== nextProps.columns;
+  // componentWillReceiveProps(nextProps) {
+  //   const sameData = containMatchingUris(this.props.bricks, nextProps.bricks);
+  //   if (sameData) {
+  //     const differentColumns = this.props.columns !== nextProps.columns;
+  //
+  //     if (differentColumns) {
+  //       const newColumnCount = nextProps.columns;
+  //       // Re-sort existing data instead of attempting to re-resolved
+  //       const resortedData = this.state._resolvedData
+  //         .map((brick, index) => assignObjectColumn(newColumnCount, index, brick))
+  //         .map((brick, index) => assignObjectIndex(index, brick))
+  //         .reduce((sortDataAcc, resolvedBrick) => _insertIntoColumn(resolvedBrick, sortDataAcc, this.props.sorted), []);
+  //
+  //       this.setState({
+  //         dataSource: resortedData
+  //       });
+  //     }
+  //   } else {
+  //     this.resolveBricks(nextProps);
+  //   }
+  // }
+  //
+  // componentWillReceiveProps(nextProps) {
+  //   const differentColumns = this.props.columns !== nextProps.columns;
+  //   const differentPriority = this.props.priority !== nextProps.priority;
+  //   // We use the difference in the passed in bricks to determine if user is appending or not
+  //   const brickDiff = differenceBy(nextProps.bricks, this.props.bricks, 'uri');
+  //   const appendedData = brickDiff.length !== nextProps.bricks.length;
+  //   const _uniqueCount = brickDiff.length + this.props.bricks.length;
+  //
+  //   // These intents would entail a complete re-render of the listview
+  //   if (differentColumns || differentPriority || !appendedData) {
+  //     this.setState(state => ({
+  //       _sortedData: [],
+  //       _resolvedData: [],
+  //       _columnHeights: generateColumnHeights(nextProps.columns),
+  //       _uniqueCount
+  //     }), this.resolveBricks(nextProps));
+  //   }
+  //
+  //   // We use the existing data and only resolve what is needed
+  //   if (appendedData) {
+  //     const offSet = this.props.bricks.length;
+  //     this.setState({
+  //       _uniqueCount
+  //     }, this.resolveBricks({...nextProps, bricks: brickDiff}, offSet));
+  //   }
+  // }
 
-      if (differentColumns) {
-        const newColumnCount = nextProps.columns;
-        // Re-sort existing data instead of attempting to re-resolved
-        const resortedData = this.state._resolvedData
-          .map((brick, index) => assignObjectColumn(newColumnCount, index, brick))
-          .map((brick, index) => assignObjectIndex(index, brick))
-          .reduce((sortDataAcc, resolvedBrick) => _insertIntoColumn(resolvedBrick, sortDataAcc, this.props.sorted), []);
+  getColumnWidth(width, spacing, columns) {
+    const gutterBase = width / 100;
+    const gutterSize = gutterBase * spacing;
+    return (width / columns) - (gutterSize / 2);
+  }
 
-        this.setState({
-          dataSource: resortedData
-        });
+  static getDerivedStateFromProps(nextProps, prevState) {
+    const { columns, priority, bricks } = nextProps;
+    const { columns: prevColumns, priority: prevPriority, bricks: prevBricks } = prevState;
+    const differentColumns = columns !== prevColumns;
+    const differentPriority = priority !== prevPriority;
+    const brickDiff = _.differenceBy(bricks, prevBricks, 'uri');
+    const appendedData = brickDiff.length !== bricks.length;
+    const _uniqueCount = brickDiff.length + prevBricks.length;
+
+    let result = {
+      ...prevState,
+      columns,
+      priority,
+      bricks,
+    };
+
+    // These intents would entail a complete re-render of the flatlist
+    if (differentColumns || differentPriority || !appendedData) {
+      const _columnHeights = generateColumnHeights(columns);
+      result = {
+        ...result,
+        _sortedData: [],
+        _resolvedData: [],
+        _columnHeights,
+        _uniqueCount,
       }
-    } else {
-      this.resolveBricks(nextProps);
+    }
+
+    // We use the existing data and only resolve what is needed
+    if (appendedData) {
+      const offSet = prevBricks.length;
+      result = {
+        _uniqueCount,
+        offSet,
+        brickDiff,
+      }
+    }
+
+    return result;
+  }
+
+  async componentDidUpdate(prevProps, prevState) {
+    const { _columnHeights, brickDiff, offSet } = this.state;
+    const { _columnHeights: prevColumnHeights, brickDiff: prevBrickDiff, offSet: prevOffSet } = prevState;
+
+    if (_columnHeights !== prevColumnHeights) {
+      this.resolveBricks(this.props);
+    }
+    if ((brickDiff !== prevBrickDiff) || (offSet !== prevOffSet)) {
+      this.resolveBricks({
+        ...this.props,
+        bricks: brickDiff
+      }, offSet);
     }
   }
 
-  resolveBricks({ bricks, columns }) {
+// TODO
+// this.resolveBricks(nextProps));
+//   , this.resolveBricks({...nextProps, bricks: brickDiff}, offSet));
+
+  // resolveBricks({ bricks, columns }) {
+  //   bricks
+  //     .map((brick, index) => assignObjectColumn(columns, index, brick))
+  //     .map((brick, index) => assignObjectIndex(index, brick))
+  //     .map(brick => resolveImage(brick))
+  //     .map(resolveTask => resolveTask.fork(
+  //       (err) => console.warn('Image failed to load'),
+  //       (resolvedBrick) => {
+  //         this.setState(state => {
+  //           const sortedData = _insertIntoColumn(resolvedBrick, state._sortedData, this.props.sorted);
+  //
+  //           return {
+  //             dataSource: sortedData,
+  //             _sortedData: sortedData,
+  //             _resolvedData: [...state._resolvedData, resolvedBrick]
+  //           }
+  //         });
+  //       }));
+  // }
+
+  resolveBricks({ bricks, columns, spacing, priority }, offSet = 0) {
+    // if (bricks.length === 0) {
+    //   // clear and re-render
+    //   this.setState(state => ({
+    //     dataSource: state.dataSource.cloneWithRows([])
+    //   }));
+    // }
+
+    // Calculate column width in case balance priority
+    let columnWidth = INVALID_COLUMN_WIDTH;
+    if (this.isBalancingEnabled()) {
+      const { dimensions: { width } } = this.state;
+      columnWidth = this.getColumnWidth(width, spacing, columns);
+    }
+
+    // Sort bricks and place them into their respectable columns
+    // Issues arise if state changes occur in the midst of a resolve
     bricks
       .map((brick, index) => assignObjectColumn(columns, index, brick))
-      .map((brick, index) => assignObjectIndex(index, brick))
+      .map((brick, index) => assignObjectIndex(offSet + index, brick))
       .map(brick => resolveImage(brick))
       .map(resolveTask => resolveTask.fork(
         (err) => console.warn('Image failed to load'),
         (resolvedBrick) => {
           this.setState(state => {
-            const sortedData = _insertIntoColumn(resolvedBrick, state._sortedData, this.props.sorted);
-
+            const sortedData = this._insertIntoColumn(resolvedBrick, state._sortedData, state._columnHeights, columnWidth);
             return {
               dataSource: sortedData,
               _sortedData: sortedData,
               _resolvedData: [...state._resolvedData, resolvedBrick]
-            }
+            };
           });
         }));
   }
@@ -142,12 +275,66 @@ export default class Masonry extends Component {
     });
   }
 
+  // Use columnHeights from state object provided by setState
+  _insertIntoColumn = (resolvedBrick, dataSet, _columnHeights, columnWidth) => {
+    let dataCopy = dataSet.slice();
+    const { priority, sorted } = this.props;
+    let columnIndex;
+
+    switch (priority) {
+      case PRIORITY_BALANCE:
+        // Column width only valid in case priority is balance
+        // Best effort to balance but sometimes state changes may have delays when performing calculation
+        columnIndex = findMinIndex(_columnHeights);
+        const heightsCopy = _columnHeights.slice();
+        const newColumnHeights = heightsCopy[columnIndex] + (columnWidth * resolvedBrick.dimensions.height / resolvedBrick.dimensions.width);
+        heightsCopy[columnIndex] = newColumnHeights;
+        this.setState({
+          _columnHeights: heightsCopy
+        });
+        break;
+      case PRIORITY_ORDER:
+      default:
+        columnIndex = resolvedBrick.column;
+        break;
+    }
+
+    const column = dataSet[columnIndex];
+
+    if (column) {
+      // Append to existing "row"/"column"
+      let bricks = [...column, resolvedBrick];
+      if (sorted) {
+        // Sort bricks according to the index of their original array position
+        bricks = bricks.sort((a, b) => (a.index < b.index) ? -1 : 1);
+      }
+      dataCopy[columnIndex] = bricks;
+    } else {
+      // Pass it as a new "row" for the data source
+      dataCopy = [...dataCopy, [resolvedBrick]];
+    }
+
+    return dataCopy;
+  };
+
+  _delayCallEndReach = () => {
+    const { _sortedData, _uniqueCount } = this.state;
+    const { onEndReached } = this.props;
+    const sortedLength = _sortedData.reduce((acc, cv) => cv.length + acc, 0);
+    // Limit the invokes to only when the masonry has
+    // fully loaded all of the content to ensure user fully reaches the end
+    if (sortedLength === _uniqueCount) {
+      onEndReached && onEndReached();
+    }
+  };
+
   render() {
     const { dimensions, dataSource } = this.state;
     const {
       columns,
       imageContainerStyle,
       customImageComponent,
+      onEndReachedThreshold,
       customImageProps,
     } = this.props;
     return (
@@ -156,6 +343,8 @@ export default class Masonry extends Component {
           contentContainerStyle={styles.masonry__container}
           data={dataSource}
           keyExtractor={(item, index) => (`RN-MASONRY-COLUMN-${index}`)}
+          onEndReached={this._delayCallEndReach}
+          onEndReachedThreshold={onEndReachedThreshold}
           renderItem={({item, index}) => (
             <Column
               data={item}
@@ -171,26 +360,28 @@ export default class Masonry extends Component {
     )
   }
 };
-
-// Returns a copy of the dataSet with resolvedBrick in correct place
-// (resolvedBrick, dataSetA, bool) -> dataSetB
-export function _insertIntoColumn (resolvedBrick, dataSet, sorted) {
-  let dataCopy = dataSet.slice();
-  const columnIndex = resolvedBrick.column;
-  const column = dataSet[columnIndex];
-
-  if (column) {
-    // Append to existing "row"/"column"
-    let bricks = [...column, resolvedBrick]
-    if (sorted) {
-      // Sort bricks according to the index of their original array position
-      bricks = bricks.sort((a, b) => { return (a.index < b.index) ? -1 : 1; });
-    }
-    dataCopy[columnIndex] = bricks
-  } else {
-    // Pass it as a new "row" for the data source
-    dataCopy = [...dataCopy, [resolvedBrick]];
-  }
-
-  return dataCopy;
-}
+//
+// // Returns a copy of the dataSet with resolvedBrick in correct place
+// // (resolvedBrick, dataSetA, bool) -> dataSetB
+// export function _insertIntoColumn (resolvedBrick, dataSet, sorted) {
+//   let dataCopy = dataSet.slice();
+//   const columnIndex = resolvedBrick.column;
+//   const column = dataSet[columnIndex];
+//
+//   if (column) {
+//     // Append to existing "row"/"column"
+//     let bricks = [...column, resolvedBrick]
+//     if (sorted) {
+//       // Sort bricks according to the index of their original array position
+//       bricks = bricks.sort((a, b) => {
+//         return (a.index < b.index) ? -1 : 1;
+//       });
+//     }
+//     dataCopy[columnIndex] = bricks
+//   } else {
+//     // Pass it as a new "row" for the data source
+//     dataCopy = [...dataCopy, [resolvedBrick]];
+//   }
+//
+//   return dataCopy;
+// }
