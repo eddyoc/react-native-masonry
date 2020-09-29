@@ -5,7 +5,7 @@ import Injector from 'react-native-injectable-component';
 export default function Brick (props) {
   // Avoid margins for first element
   const { gutter, renderHeader, renderFooter, data, onPress, brickKey } = props;
-  console.log('Brick : props = '+ JSON.stringify(props));
+  // console.log('Brick : props = '+ JSON.stringify(props));
   const image = (onPress) ? _getTouchableUnit(props, gutter) : _getImageTag(props, gutter);
   const footer = (renderFooter) ? renderFooter(data) : null;
   const header = (renderHeader) ? renderHeader(data) : null;
@@ -36,8 +36,8 @@ export function _getImageTag (props, gutter = 0) {
     }
   };
 
-  console.log('_getImageTag imageProps = ' + JSON.stringify(imageProps));
-  console.log('_getImageTag customImageProps = ' + JSON.stringify(customImageProps));
+  // console.log('_getImageTag imageProps = ' + JSON.stringify(imageProps));
+  // console.log('_getImageTag customImageProps = ' + JSON.stringify(customImageProps));
 
   // return (<Fragment />);
   return (

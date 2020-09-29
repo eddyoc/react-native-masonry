@@ -38,14 +38,6 @@ export default class Column extends Component {
     const { data, parentDimensions, columns } = nextProps;
     const images = Column._resizeImages(data, parentDimensions, columns);
 
-    console.log(`........... Column.getDerivedStateFromProps images=${JSON.stringify(images)}`);
-
-    // if (this.state.columnWidth !== columnWidth) {
-    //   this.setState({
-    //     columnWidth
-    //   });
-    // }
-
     return {
       ...prevState,
       images,
@@ -68,8 +60,6 @@ export default class Column extends Component {
         ...imageSizedForColumn
       };
 
-      console.log(`............ _resizeImages result=${JSON.stringify(result)}`);
-
       return result;
     });
   }
@@ -77,7 +67,7 @@ export default class Column extends Component {
   // Resize image while maintain aspect ratio
   // _resizeByColumns :: ImgDimensions , parentDimensions, nColumns  -> AdjustedDimensions
   static _resizeByColumns (imgDimensions, parentDimensions, nColumns=2) {
-    console.log(`_resizeByColumns imgDimensions=#${JSON.stringify(imgDimensions)} parentDimensions=${JSON.stringify(parentDimensions)}`)
+    // console.log(`_resizeByColumns imgDimensions=#${JSON.stringify(imgDimensions)} parentDimensions=${JSON.stringify(parentDimensions)}`);
     const { height, width } = parentDimensions;
 
     // The gutter is 1% of the available view width
@@ -86,15 +76,7 @@ export default class Column extends Component {
 
     // Column gutters are shared between right and left image
     const columnWidth = (width / nColumns) - (gutterSize / 2);
-
-    // if (this.state.columnWidth !== columnWidth) {
-    //   this.setState({
-    //     columnWidth
-    //   });
-    // }
-
     const divider = imgDimensions.width / columnWidth;
-
     const newWidth = imgDimensions.width / divider;
     const newHeight = imgDimensions.height / divider;
 
@@ -114,7 +96,7 @@ export default class Column extends Component {
       const key = `RN-MASONRY-BRICK-${brick.column}-${index}`;
       const { imageContainerStyle, customImageComponent, customImageProps } = this.props;
       const props = { ...brick, gutter, key, imageContainerStyle, customImageComponent, customImageProps };
-      console.log('_renderBricks btick = ' + JSON.stringify(props));
+      // console.log('_renderBricks btick = ' + JSON.stringify(props));
 
       if (props.width) {
         return ( <Brick {...props} /> );
@@ -128,7 +110,7 @@ export default class Column extends Component {
     const { columnWidth: width, images } = this.state;
     const { columnKey } = this.props;
     const style = [{ width }, styles.masonry__column];
-    console.log('Column.render');
+
     return (
       <View
         key={columnKey}
