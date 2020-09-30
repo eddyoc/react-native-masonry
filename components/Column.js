@@ -91,19 +91,19 @@ export default class Column extends Component {
   // Renders the "bricks" within the columns
   // _renderBricks :: [images] -> [TouchableTag || ImageTag...]
   _renderBricks (bricks) {
-    return bricks.map((brick, index) => {
-      const gutter = (index === 0) ? 0 : brick.gutter;
-      const key = `RN-MASONRY-BRICK-${brick.column}-${index}`;
-      const { imageContainerStyle, customImageComponent, customImageProps } = this.props;
-      const props = { ...brick, gutter, key, imageContainerStyle, customImageComponent, customImageProps };
-      // console.log('_renderBricks btick = ' + JSON.stringify(props));
+    return bricks
+      .map((brick, index) => {
+        const gutter = (index === 0) ? 0 : brick.gutter;
+        const key = `RN-MASONRY-BRICK-${brick.column}-${index}`;
+        const { imageContainerStyle, customImageComponent, customImageProps } = this.props;
+        const props = { ...brick, gutter, key, imageContainerStyle, customImageComponent, customImageProps };
+        // console.log('_renderBricks btick = ' + JSON.stringify(props));
 
-      if (props.width) {
-        return ( <Brick {...props} /> );
-      }
-
-      return ( <Fragment /> );
-    });
+        if (props.width) {
+          return ( <Brick {...props} /> );
+        }
+      })
+      .filter(x => x !== undefined);
   }
 
   render() {
